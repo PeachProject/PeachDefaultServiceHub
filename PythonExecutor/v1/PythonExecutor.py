@@ -6,10 +6,12 @@ def start(c, python_module, input_values, f, m):
     import os
     import time
     import shutil
-    import tarfile
+    
     import hashlib
     import sys
     import traceback
+
+    print("==== PYTHON EXECUTOR!!!! ======")
 
     ServiceUtility.info(c, "Generating unique temp output dir...")
 
@@ -23,23 +25,23 @@ def start(c, python_module, input_values, f, m):
     ServiceUtility.info(c, "Generating cryptic folder name from original python module name...")
 
     new_folder_name = hashlib.md5(python_module.encode()).hexdigest()
-    new_tar_name = "{}.tar".format(new_folder_name)
+    filename, file_extension = os.path.splitext(python_module)
+    new_file_name = "{}{}".format(new_folder_name, file_extension)
 
-    ServiceUtility.info(c, "New cryptic tar name is '{}'".format(new_tar_name))
+    ServiceUtility.info(c, "New cryptic {} name is '{}'".format(file_extension, new_file_name))
 
     new_folder_path = os.path.join(unique_output_dir, new_folder_name)
-    python_tar_to_use = os.path.join(unique_output_dir, new_tar_name)
+    python_archive_to_use = os.path.join(unique_output_dir, new_file_name)
 
-    ServiceUtility.info(c, "Copying python module to '{}'".format(new_tar_name))
+    ServiceUtility.info(c, "Copying python module to '{}'".format(new_file_name))
 
-    shutil.copyfile(python_module, python_tar_to_use)
+    shutil.copyfile(python_module, python_archive_to_use)
 
-    ServiceUtility.info(c, "Extracting tar '{}'".format(new_tar_name))
+    ServiceUtility.info(c, "Extracting {} '{}'".format(file_extension, new_file_name))
     
-    tar = tarfile.open(python_tar_to_use)
-    tar.extractall(path=new_folder_path)
+    extract(file_extension, python_archive_to_use, new_folder_path)
 
-    ServiceUtility.info(c, "Successfully extracted tar!")
+    ServiceUtility.info(c, "Successfully extracted archive!")
     
     #We have successfully extracted the given tar...
     #Now we want to import the given module dynamically
@@ -87,3 +89,20 @@ def start(c, python_module, input_values, f, m):
 
 
     return final_output
+
+def extract(extension, python_archive_to_use, new_folder_path):
+    if extension.lower() == ".zip":
+        unzip_module(python_archive_to_use, new_folder_path)
+    else:
+        untar_module(python_archive_to_use, new_folder_path)
+
+def untar_module(python_archive_to_use, new_folder_path):
+    import tarfile
+    tar = tarfile.open(python_archive_to_use)
+    tar.extractall(path=new_folder_path)
+
+def unzip_module(python_archive_to_use, new_folder_path):
+    import zipfile
+    zip_ref = zipfile.ZipFile(python_archive_to_use, 'r')
+    zip_ref.extractall(new_folder_path)
+    zip_ref.close()
